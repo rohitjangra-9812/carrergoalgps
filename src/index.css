@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .prose h2 {
+    @apply text-xl font-bold mt-6 mb-3 text-slate-800 dark:text-slate-100;
+  }
+  .prose h3 {
+    @apply text-lg font-semibold mt-4 mb-2 text-slate-700 dark:text-slate-200;
+  }
+  .prose p {
+    @apply mb-4 leading-relaxed text-slate-700 dark:text-slate-300;
+  }
+  .prose ul {
+    @apply list-disc list-inside mb-4 space-y-2 text-slate-700 dark:text-slate-300;
+  }
+  .prose strong {
+    @apply font-semibold text-slate-900 dark:text-slate-50;
+  }
+  /* Checkbox styling in markdown */
+  .prose input[type="checkbox"] {
+    @apply mr-2 w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer dark:bg-slate-700 dark:border-slate-600 dark:checked:bg-indigo-500;
+  }
+}
+
+@media print {
+  /* Fix scrolling and height so all content prints */
+  html, body, #root {
+    height: auto !important;
+    overflow: visible !important;
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .h-screen, .flex-1, .overflow-y-auto, .overflow-hidden {
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+    display: block !important;
+  }
+  
+  /* Hide sidebar and inputs for print */
+  aside, footer, header, .print-hide {
+    display: none !important;
+  }
+  
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    display: block !important;
+  }
+  
+  /* Remove message styling, make it flow */
+  .prose {
+    color: black !important;
+  }
+  
+  /* Print everything linearly */
+  .flex-col > .flex {
+    page-break-inside: avoid;
+  }
+}
+
+@layer utilities {
+  .career-bg-pattern {
+    background-image: 
+      radial-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+      radial-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px);
+    background-position: 0 0, 24px 24px;
+    background-size: 48px 48px;
+  }
+  
+  .dark .career-bg-pattern {
+    background-image: 
+      radial-gradient(rgba(129, 140, 248, 0.04) 1px, transparent 1px),
+      radial-gradient(rgba(129, 140, 248, 0.04) 1px, transparent 1px);
+  }
+  
+  .gradient-mesh {
+    background: 
+      radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.04), transparent 30%),
+      radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.04), transparent 30%),
+      radial-gradient(circle at 50% 80%, rgba(56, 189, 248, 0.04), transparent 30%);
+  }
+  
+  .dark .gradient-mesh {
+    background: 
+      radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 35%),
+      radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 35%),
+      radial-gradient(circle at 50% 80%, rgba(56, 189, 248, 0.08), transparent 35%);
+  }
+
+  .floating-icon {
+    animation: float 15s ease-in-out infinite;
+    opacity: 0.03;
+  }
+
+  .dark .floating-icon {
+    opacity: 0.02;
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-20px) rotate(5deg); }
+  66% { transform: translateY(10px) rotate(-5deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Core Career GPS Engine",
+  "description": "An elite, empathetic, and data-driven AI Career Counselor designed to guide students through a 4-Stage Life Roadmap.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
