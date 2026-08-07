@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { BookOpen, FileText, Download, PlayCircle, Layers, Link as LinkIcon, Search, Brain, Target, CheckCircle, X, PackageOpen, DownloadCloud } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save, FolderHeart } from 'lucide-react';
 
-const materialTypes = ['All', 'PYQs', 'Short Notes', 'Flashcards', 'Mind Maps', 'Mock Tests'];
+const materialTypes = ['All', 'Saved', 'PYQs', 'Short Notes', 'Flashcards', 'Mind Maps', 'Mock Tests'];
 
 type BundleItem = {
   type: string;
@@ -48,14 +48,39 @@ const mockMaterials = [
 
 export const StudyMaterialsHub = () => {
   const { language, t } = useLanguage();
+
   const [activeType, setActiveType] = useState('All');
+  const [savedMaterials, setSavedMaterials] = useState<any[]>(() => {
+    const saved = localStorage.getItem('career-gps-saved-materials');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('career-gps-saved-materials', JSON.stringify(savedMaterials));
+  }, [savedMaterials]);
+
+  const handleSaveContent = (content: string, item: BundleItem) => {
+    const newMaterial = {
+      id: Date.now(),
+      title: `Saved: ${item.label} (${activeBundle?.examName})`,
+      type: 'Saved',
+      target: activeBundle?.examName || 'Various',
+      content: content,
+      timestamp: new Date().toISOString()
+    };
+    setSavedMaterials(prev => [newMaterial, ...prev]);
+    alert(t("Material saved for offline access!"));
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isBundleModalOpen, setIsBundleModalOpen] = useState(false);
   const [activeBundle, setActiveBundle] = useState<Bundle | null>(null);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const filteredMaterials = mockMaterials.filter(mat => {
+
+  const filteredMaterials = activeType === 'Saved' ? savedMaterials : mockMaterials.filter(mat => {
+
     const matchesType = activeType === 'All' || mat.type === activeType;
     const matchesSearch = mat.title.toLowerCase().includes(searchQuery.toLowerCase()) || mat.target.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
@@ -65,6 +90,7 @@ export const StudyMaterialsHub = () => {
   const handleGenerateItem = async (item: BundleItem) => {
     setGeneratedContent('');
     setIsGenerating(true);
+    setActiveItem(item);
     try {
       const response = await fetch('/api/generate-material', {
         method: 'POST',
@@ -100,12 +126,29 @@ export const StudyMaterialsHub = () => {
     }
   };
 
+  
+  const [activeItem, setActiveItem] = useState<BundleItem | null>(null);
+
   const handleGetResource = (resource: typeof mockMaterials[0]) => {
+    if (resource.type === 'Saved') {
+      const savedItem = savedMaterials.find(s => s.id === resource.id);
+      if (savedItem) {
+        setActiveBundle({
+          examName: savedItem.target,
+          title: savedItem.title,
+          items: []
+        });
+        setGeneratedContent(savedItem.content);
+        setActiveItem({ type: savedItem.type, label: savedItem.title, size: 'Saved' });
+        setIsBundleModalOpen(true);
+        return;
+      }
+    }
+
     if (resource.format === 'Web') {
       alert(`Opening ${resource.title} in a new tab...`);
       return;
     }
-
     setActiveBundle({
       examName: resource.target,
       title: resource.title,
@@ -118,6 +161,7 @@ export const StudyMaterialsHub = () => {
     });
     setIsBundleModalOpen(true);
   };
+
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 flex flex-col gap-6">
@@ -175,7 +219,7 @@ export const StudyMaterialsHub = () => {
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded bg-fuchsia-50 dark:bg-fuchsia-900/20 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center shrink-0">
-                        <mat.icon size={16} />
+                        {mat.icon ? <mat.icon size={16} /> : <FolderHeart size={16} />}
                       </div>
                       <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{mat.title}</span>
                     </div>
@@ -196,7 +240,9 @@ export const StudyMaterialsHub = () => {
                       onClick={() => handleGetResource(mat)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-fuchsia-50 dark:bg-fuchsia-900/20 hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40 text-fuchsia-600 dark:text-fuchsia-400 text-xs font-bold rounded transition-colors"
                     >
-                      {mat.format === 'Web' ? (
+                      {mat.type === 'Saved' ? (
+                        <><FolderHeart size={14} /> {t("Open Saved")}</>
+                      ) : mat.format === 'Web' ? (
                         <><LinkIcon size={14} /> Open</>
                       ) : (
                         <><Download size={14} /> Get</>
@@ -246,7 +292,16 @@ export const StudyMaterialsHub = () => {
                 <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-slate-800 dark:text-slate-200">Generated Study Material</h3>
-                    <button onClick={() => { setGeneratedContent(null); setIsGenerating(false); }} className="text-xs text-slate-500 hover:text-slate-700">← Back to Bundle</button>
+                    
+                    <div className="flex items-center gap-2">
+                      {activeItem?.type !== 'Saved' && generatedContent && (
+                        <button onClick={() => handleSaveContent(generatedContent, activeItem!)} className="flex items-center gap-1 text-xs text-fuchsia-600 hover:text-fuchsia-700 bg-fuchsia-50 hover:bg-fuchsia-100 px-3 py-1.5 rounded-lg transition-colors font-semibold">
+                          <Save size={14} /> {t("Save for Offline")}
+                        </button>
+                      )}
+                      <button onClick={() => { setGeneratedContent(null); setIsGenerating(false); setActiveItem(null); }} className="text-xs text-slate-500 hover:text-slate-700">← Back to Bundle</button>
+                    </div>
+
                   </div>
                   <div className="prose prose-sm prose-slate dark:prose-invert max-w-none">
                     {generatedContent ? (

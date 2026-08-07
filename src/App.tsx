@@ -131,7 +131,7 @@ export default function App() {
   
   const [gamification, setGamification] = useState(() => {
     const saved = localStorage.getItem('career-gps-gamification');
-    return saved ? JSON.parse(saved) : { xp: 120, level: 2, badges: ['Profile Pioneer'] };
+    return saved ? { studyHours: 0, quizParticipation: 0, ...JSON.parse(saved) } : { xp: 120, level: 2, badges: ['Profile Pioneer'], studyHours: 0, quizParticipation: 0 };
   });
 
   useEffect(() => {
@@ -586,6 +586,11 @@ Please build a highly personalized roadmap and possibilities for me!`);
   };
 
   const handleQuickAction = (action: string) => {
+    if (action === 'Log 1 Hour Study') {
+       setGamification(prev => ({...prev, studyHours: (prev.studyHours || 0) + 1}));
+       alert(t("1 Study hour logged successfully!"));
+       return;
+    }
     if (action === 'Exam Deadlines') {
        const userMsg = action;
        const context = fetchedExams.length > 0 ? `\n\n[MOCK SERVICE DATA (Latest Live Updates):\n${JSON.stringify(fetchedExams, null, 2)}]` : '';
@@ -622,55 +627,55 @@ Please build a highly personalized roadmap and possibilities for me!`);
             <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
             <h1 className="text-xs font-bold uppercase tracking-widest text-slate-400">{t('Career GPS Engine')}</h1>
           </div>
-          <p className="text-lg font-semibold">Academic Protocol</p>
+          <p className="text-lg font-semibold">{t('Academic Protocol')}</p>
           <div className="mt-4 flex flex-col gap-1">
             <button 
               onClick={() => setAppMode('GPS')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'GPS' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              Roadmap GPS
+              {t('Roadmap Visualizer')}
             </button>
             <button 
               onClick={() => setAppMode('Growth')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'Growth' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              Salary & Growth Predictor
+              {t('Salary Predictor')}
             </button>
             <button 
               onClick={() => setAppMode('CurrentAffairs')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'CurrentAffairs' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              Daily Current Affairs
+              {t('Current Affairs')}
             </button>
             <button 
               onClick={() => setAppMode('ExamDirectory')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'ExamDirectory' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              Exam Directory
+              {t('Exam Directory')}
             </button>
             <button 
               onClick={() => setAppMode('StudyMaterials')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'StudyMaterials' ? 'bg-fuchsia-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              Study Materials & PYQs
+              {t('Study Materials Hub')}
             </button>
             <button 
               onClick={() => setAppMode('DoubtSolver')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'DoubtSolver' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              AI Doubt Solver
+              {t('Doubt Solver')}
             </button>
             <button 
               onClick={() => setAppMode('DailyQuiz')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'DailyQuiz' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              Daily Quiz Arena
+              {t('Daily Quiz')}
             </button>
             <button 
               onClick={() => setAppMode('EligibilityChecker')}
               className={`text-left px-3 py-2 text-xs font-bold rounded-md transition-colors ${appMode === 'EligibilityChecker' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
             >
-              Check Eligibility
+              {t('Eligibility Checker')}
             </button>
           </div>
         </div>
@@ -682,8 +687,8 @@ Please build a highly personalized roadmap and possibilities for me!`);
               {profile?.name ? profile.name.charAt(0).toUpperCase() : <UserCircle size={24} />}
             </div>
             <div className="flex-1 overflow-hidden">
-              <div className="text-xs font-medium text-slate-400 truncate">{profile?.currentStatus || "No Profile Set"}</div>
-              <div className="text-sm font-bold truncate">{profile ? `${profile.stream} • ${profile.target}` : "Click to edit profile"}</div>
+              <div className="text-xs font-medium text-slate-400 truncate">{profile?.currentStatus || t("No Profile Set")}</div>
+              <div className="text-sm font-bold truncate">{profile ? `${profile.stream} • ${profile.target}` : t("Click to edit profile")}</div>
             </div>
             <button 
               onClick={() => setShowProfileModal(true)}
@@ -697,12 +702,13 @@ Please build a highly personalized roadmap and possibilities for me!`);
 
       {/* Main Command Center */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
+
         {/* Profile Modal */}
         {showProfileModal && (
           <div className="absolute inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Candidate Profile</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('Candidate Profile')}</h2>
                 {profile && (
                   <button onClick={() => setShowProfileModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                     <X size={20} />
@@ -711,11 +717,11 @@ Please build a highly personalized roadmap and possibilities for me!`);
               </div>
               <form onSubmit={saveProfile} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
-                  <input required value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} type="text" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Rahul Sharma" />
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{t('Full Name')}</label>
+                  <input required value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} type="text" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t("e.g. Rahul Sharma")} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Life Stage</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{t('Life Stage')}</label>
                   <select required value={profileForm.lifeStage || 'School Student'} onChange={e => setProfileForm({...profileForm, lifeStage: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
                     <option value="School Student">School Student</option>
                     <option value="College/University Student">College/University Student</option>
@@ -782,15 +788,15 @@ Please build a highly personalized roadmap and possibilities for me!`);
               <Map size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Core Career GPS Engine</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Data-driven 4-Stage Life Roadmap</p>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{t('Career GPS Engine')}</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t('Data-driven 4-Stage Life Roadmap')}</p>
             </div>
           </div>
           <div className="flex gap-4 items-center">
             <div className="hidden lg:flex gap-8 items-center mr-4">
               <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Candidate</div>
-                <div className="text-sm font-bold dark:text-white truncate max-w-[120px]">{profile?.name || 'Guest'}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{t('Candidate')}</div>
+                <div className="text-sm font-bold dark:text-white truncate max-w-[120px]">{profile?.name || t('Guest')}</div>
               </div>
               <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 my-auto"></div>
               <div>
@@ -858,13 +864,38 @@ Please build a highly personalized roadmap and possibilities for me!`);
           ) : appMode === 'DoubtSolver' ? (
             <DoubtSolver />
           ) : appMode === 'DailyQuiz' ? (
-            <DailyQuiz />
+            <DailyQuiz onComplete={() => setGamification(prev => ({...prev, quizParticipation: (prev.quizParticipation || 0) + 1}))} />
           ) : appMode === 'EligibilityChecker' ? (
             <EligibilityChecker />
           ) : appMode === 'ResumeRebrander' ? (
             <ResumeRebrander />
           ) : (
             <main ref={printContainerRef} className="flex-1 p-4 md:p-8 w-full max-w-5xl mx-auto flex flex-col gap-6">
+
+              {new Date().getDay() === 1 && new Date().getHours() < 12 && (
+                <div className="bg-gradient-to-r from-indigo-900/40 to-fuchsia-900/40 border border-indigo-500/30 rounded-xl p-5 shadow-sm text-white flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-indigo-300 font-bold mb-2">
+                    <Award size={20} /> 
+                    <span>{t('Weekly Career Pulse')}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                      <div className="text-sm text-slate-400 font-medium mb-1">{t('Study Hours Logged')}</div>
+                      <div className="text-2xl font-black text-white">{gamification.studyHours || 0}h</div>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                      <div className="text-sm text-slate-400 font-medium mb-1">{t('Quizzes Taken')}</div>
+                      <div className="text-2xl font-black text-white">{gamification.quizParticipation || 0}</div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-300 mt-2 font-medium">
+                    {(gamification.studyHours || 0) >= 5 && (gamification.quizParticipation || 0) >= 3 
+                      ? t("Great job! You're on track for success this week.") 
+                      : t("Keep it up! Try to hit 5 study hours and 3 quizzes this week.")}
+                  </p>
+                </div>
+              )}
+
               {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -925,7 +956,7 @@ Please build a highly personalized roadmap and possibilities for me!`);
                   </div>
                   <div className="px-5 py-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm rounded-tl-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <Loader2 className="animate-spin text-indigo-500" size={18} />
-                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Calculating optimal roadmap...</span>
+                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('Calculating optimal roadmap...')}</span>
                   </div>
                 </div>
               </div>
@@ -939,7 +970,7 @@ Please build a highly personalized roadmap and possibilities for me!`);
         <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 p-4 shrink-0 px-8 print-hide transition-colors">
           <div className="max-w-5xl mx-auto">
             <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-              {['Find Internships', 'Exam Deadlines', 'Skill Checklist', 'Top Institutions Nearby', 'Get Study Materials'].map((action) => (
+              {['Find Internships', 'Exam Deadlines', 'Skill Checklist', 'Top Institutions Nearby', 'Get Study Materials', 'Log 1 Hour Study'].map((action) => (
                   <button
                     key={action}
                     type="button"
@@ -947,7 +978,7 @@ Please build a highly personalized roadmap and possibilities for me!`);
                     disabled={isLoading}
                     className="whitespace-nowrap px-4 py-1.5 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700 transition-colors disabled:opacity-50"
                   >
-                    {action}
+                    {t(action)}
                   </button>
                 ))}
             </div>
@@ -998,8 +1029,8 @@ Please build a highly personalized roadmap and possibilities for me!`);
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={
                   selectedFile 
-                    ? "Add a message about your file..." 
-                    : "e.g. 11th grade PCM, interested in software engineering..."
+                    ? t("Add a message about your file...") 
+                    : t("e.g. 11th grade PCM, interested in software engineering...")
                 }
                 className={`w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-full ${selectedFile ? 'pl-64' : 'pl-24'} pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm`}
                 disabled={isLoading}

@@ -11,7 +11,7 @@ interface Question {
   explanation: string;
 }
 
-export const DailyQuiz: React.FC = () => {
+export const DailyQuiz: React.FC<{ onComplete?: () => void }> = ({ onComplete }) => {
   const { language, t } = useLanguage();
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ export const DailyQuiz: React.FC = () => {
       setIsSubmitted(false);
     } else {
       setIsCompleted(true);
+      if (onComplete) onComplete();
     }
   };
 
