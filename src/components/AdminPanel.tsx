@@ -23,6 +23,7 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
     if (!isAuthenticated || !token) return;
 
     const eventSource = new EventSource('/api/admin/events');
+    eventSource.onerror = () => eventSource.close();
     
     eventSource.onmessage = (event) => {
       try {

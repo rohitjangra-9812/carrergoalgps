@@ -43,24 +43,13 @@ type UserProfile = {
 
 // Mock service for exams
 const useMockExams = () => {
-  const [exams, setExams] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchExams = async () => {
-      try {
-        const response = await fetch('/api/exams');
-        if (response.ok) {
-          const data = await response.json();
-          setExams(data);
-        }
-      } catch (e) {
-        console.error("Failed to fetch exams", e);
-      }
-    };
-    fetchExams();
-  }, []);
-
-  return exams;
+  return [
+    { name: "JEE Main 2026", type: "Engineering", applicationStart: "Nov 1, 2025", lastDate: "Dec 15, 2025", examWindow: "Jan 20-30, 2026" },
+    { name: "NEET UG 2026", type: "Medical", applicationStart: "Feb 10, 2026", lastDate: "Mar 15, 2026", examWindow: "May 3, 2026" },
+    { name: "UPSC CSE 2026", type: "Civil Services", applicationStart: "Feb 15, 2026", lastDate: "Mar 5, 2026", examWindow: "May 24, 2026 (Prelims)" },
+    { name: "GATE 2026", type: "Engineering PG", applicationStart: "Aug 30, 2025", lastDate: "Oct 12, 2025", examWindow: "Feb 7-15, 2026" },
+    { name: "CAT 2026", type: "Management", applicationStart: "Aug 1, 2026", lastDate: "Sep 15, 2026", examWindow: "Nov 29, 2026" }
+  ];
 };
 
 type TrackedExam = {
@@ -104,6 +93,7 @@ export default function App() {
 
   useEffect(() => {
     const eventSource = new EventSource('/api/admin/events');
+    eventSource.onerror = () => eventSource.close();
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -831,7 +821,7 @@ Please build a highly personalized roadmap and possibilities for me!`);
             </div>
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => setLanguage(e.target.value as any)}
               className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg px-2 py-2 border-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               title={t('Select Language')}
             >

@@ -61,14 +61,10 @@ export const DailyQuiz: React.FC<{ onComplete?: () => void }> = ({ onComplete })
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(`/api/daily-quiz?lang=${language}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch daily quiz');
-        }
-        const data = await response.json();
-        setQuizQuestions(data.questions);
+        throw new Error('Static deployment');
       } catch (err) {
-        console.warn('API error, using fallback quiz:', err);
+        // Fallback for static deployment without backend
+
 
         const fallbackQuiz = [
           { id: 1, category: "Current Affairs", question: "Who recently won the latest international chess championship?", options: ["Magnus Carlsen", "Ding Liren", "Hikaru Nakamura", "Fabiano Caruana"], correctAnswer: "Ding Liren", explanation: "Ding Liren is the current World Chess Champion." },
