@@ -92,12 +92,37 @@ export const StudyMaterialsHub = () => {
     setIsGenerating(true);
     setActiveItem(item);
     try {
-      const response = await fetch('/api/generate-material', {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('API Key is missing. Please configure VITE_GEMINI_API_KEY in your Vercel/Vite environment variables.');
+      }
+      
+      const systemInstruction = `You are an expert academic tutor and exam preparation specialist. IMPORTANT: You MUST generate the content entirely in ${language || 'English'}. Your task is to generate complete, well-structured, and comprehensive content for ${item.type} related to ${item.label} for the ${activeBundle?.examName} exam.
+IMPORTANT RULES:
+- Generate complete, detailed content.
+- Explicitly forbidden: truncation, placeholders, ellipses, or repeating lines.
+- Do NOT cut off mid-sentence.
+- Ensure the output is fully structured using Markdown headings, bullet points, and clean formatting.
+- For PYQs, provide structured question and answer pairs with full explanations.
+- For Notes, provide comprehensive subject matter breakdown.
+- IMPORTANT: Use standard LaTeX formatting for ALL mathematical expressions, equations, and variables. Use single dollar signs ($math$) for inline equations and double dollar signs ($math$) for block equations. Use proper LaTeX syntax for fractions (\\frac{}{}), integrals (\\int), roots (\\sqrt{}), etc.`;
+
+      const requestBody = {
+        contents: [{ role: "user", parts: [{ text: `Generate comprehensive ${item.type} on ${item.label} for ${activeBundle?.examName}.` }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] }
+      };
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: item.type, topic: item.label, target: activeBundle?.examName })
+        body: JSON.stringify(requestBody)
       });
-      if (!response.body) throw new Error('No body');
+      
+      if (!response.ok) {
+         const err = await response.json().catch(() => ({}));
+         throw new Error(err.error?.message || 'Failed to fetch from Gemini API. Network issue or invalid key.');
+      }
+      if (!response.body) throw new Error('No body in response');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let content = '';
@@ -110,17 +135,18 @@ export const StudyMaterialsHub = () => {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
             try {
               const data = JSON.parse(line.substring(6));
-              if (data.text) {
-                content += data.text;
+              const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (textChunk) {
+                content += textChunk;
                 setGeneratedContent(content);
               }
             } catch (e) {}
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setGeneratedContent('Failed to generate content.');
+      setGeneratedContent(`**Error:** ${error.message || 'Failed to generate content.'}\n\n*Note: This app is running client-side. Please ensure you have added your Gemini API key to the VITE_GEMINI_API_KEY environment variable in your Vercel settings.*`);
     } finally {
       setIsGenerating(false);
     }

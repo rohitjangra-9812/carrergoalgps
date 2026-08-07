@@ -98,20 +98,42 @@ export const DoubtSolver = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/solve-doubt', {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('API Key is missing. Please configure VITE_GEMINI_API_KEY in your Vercel/Vite environment variables.');
+      }
+      
+      const systemInstruction = `You are an elite, highly accurate Doubt Solver and Academic Tutor. IMPORTANT: You MUST provide your answer entirely in ${language || 'English'}. Your goal is to provide direct, factual, and precise answers to the user's specific questions. Whether the question is about geographical facts, math problems, historical events, scientific definitions, or conceptual doubts, you must evaluate the text query and generate a contextually accurate, direct, and factually correct answer.
+Do not use generic template steps if a direct factual answer is required (e.g., comparing country sizes, definitions, formulas). Be precise and clear.
+IMPORTANT: Use standard LaTeX formatting for ALL mathematical expressions, equations, and variables. Use single dollar signs ($math$) for inline equations and double dollar signs ($math$) for block equations. Use proper LaTeX syntax for fractions (\\frac{}{}), integrals (\\int), roots (\\sqrt{}), etc.`;
+
+      const currentParts = [];
+      if (fileToSent) {
+         currentParts.push({
+            inlineData: {
+              data: fileToSent.data,
+              mimeType: fileToSent.mimeType
+            }
+         });
+      }
+      currentParts.push({ text: userQuery || "Please analyze this file/image." });
+
+      const requestBody = {
+        contents: [{ role: "user", parts: currentParts }],
+        systemInstruction: { parts: [{ text: systemInstruction }] }
+      };
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          question: userQuery,
-          files: fileToSent ? [{ data: fileToSent.data, mimeType: fileToSent.mimeType }] : undefined
-        })
+        body: JSON.stringify(requestBody)
       });
       
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+         const err = await response.json().catch(() => ({}));
+         throw new Error(err.error?.message || 'Failed to fetch from Gemini API. Network issue or invalid key.');
       }
-      
-      if (!response.body) throw new Error('No body');
+      if (!response.body) throw new Error('No body in response');
       
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -131,8 +153,9 @@ export const DoubtSolver = () => {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
             try {
               const data = JSON.parse(line.substring(6));
-              if (data.text) {
-                botResponse += data.text;
+              const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (textChunk) {
+                botResponse += textChunk;
                 setMessages(prev => prev.map(msg => 
                   msg.id === botMessageId ? { ...msg, text: botResponse } : msg
                 ));

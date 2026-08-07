@@ -513,23 +513,48 @@ Please build a highly personalized roadmap and possibilities for me!`);
     }
 
     try {
-      const response = await fetch('/api/chat', {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('API Key is missing. Please configure VITE_GEMINI_API_KEY in your Vercel/Vite environment variables.');
+      }
+
+      const contents = [];
+      if (cachePayload.history) {
+        for (const msg of cachePayload.history) {
+          contents.push({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.text }]
+          });
+        }
+      }
+
+      const currentParts = [];
+      if (cachePayload.files && cachePayload.files.length > 0) {
+        for (const f of cachePayload.files) {
+          currentParts.push({
+            inlineData: {
+              data: f.data,
+              mimeType: f.mimeType
+            }
+          });
+        }
+      }
+      currentParts.push({ text: cachePayload.message });
+      contents.push({ role: 'user', parts: currentParts });
+
+      const requestBody = { contents };
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cachePayload)
+        body: JSON.stringify(requestBody)
       });
-
+      
       if (!response.ok) {
-        let errMsg = 'Failed to fetch response';
-        try {
-          const errData = await response.json();
-          if (errData && errData.error) errMsg = errData.error;
-        } catch (e) {}
-        throw new Error(errMsg);
+         const err = await response.json().catch(() => ({}));
+         throw new Error(err.error?.message || 'Failed to fetch from Gemini API. Network issue or invalid key.');
       }
-      if (!response.body) {
-        throw new Error('No body in response');
-      }
+      if (!response.body) throw new Error('No body in response');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
