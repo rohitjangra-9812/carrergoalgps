@@ -1,3 +1,4 @@
+import { GoogleGenAI } from '@google/genai';
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Mic, MicOff, Paperclip, Bot, User, FileText, X } from 'lucide-react';
 import Markdown from 'react-markdown';
@@ -118,53 +119,33 @@ IMPORTANT: Use standard LaTeX formatting for ALL mathematical expressions, equat
       }
       currentParts.push({ text: userQuery || "Please analyze this file/image." });
 
-      const requestBody = {
-        contents: [{ role: "user", parts: currentParts }],
-        systemInstruction: { parts: [{ text: systemInstruction }] }
-      };
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:streamGenerateContent?key=${apiKey}&alt=sse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!response.ok) {
-         const err = await response.json().catch(() => ({}));
-         throw new Error(err.error?.message || 'Failed to fetch from Gemini API. Network issue or invalid key.');
+            const ai = new GoogleGenAI({ apiKey });
+      let responseStream;
+      try {
+        responseStream = await ai.models.generateContentStream({
+          model: 'gemini-3.5-flash',
+          contents: [{ role: 'user', parts: currentParts }],
+          config: { systemInstruction }
+        });
+      } catch (err) {
+        console.error('Gemini API Error (Initialization/Request):', err);
+        throw err;
       }
-      if (!response.body) throw new Error('No body in response');
       
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      const botMessageId = Date.now() + 1;
-      
-      setMessages(prev => [...prev, { id: botMessageId, text: '', isAi: true }]);
       let botResponse = '';
+      const botMessageId = Date.now() + 1;
+      setMessages(prev => [...prev, { id: botMessageId, text: '', isAi: true }]);
       
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-            try {
-              const data = JSON.parse(line.substring(6));
-              const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (textChunk) {
-                botResponse += textChunk;
-                setMessages(prev => prev.map(msg => 
-                  msg.id === botMessageId ? { ...msg, text: botResponse } : msg
-                ));
-              }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
-            }
+      try {
+        for await (const chunk of responseStream) {
+          if (chunk.text) {
+            botResponse += chunk.text;
+            setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, text: botResponse } : m));
           }
         }
+      } catch (err) {
+        console.error('Gemini API Error (Stream):', err);
+        throw err;
       }
     } catch (error) {
       console.error('Error fetching AI response:', error);

@@ -1,3 +1,4 @@
+import { GoogleGenAI } from '@google/genai';
 import React, { useState, useRef, useEffect } from 'react';
 import { useLanguage } from './contexts/LanguageContext';
 import ReactMarkdown from 'react-markdown';
@@ -532,51 +533,33 @@ Please build a highly personalized roadmap and possibilities for me!`);
       currentParts.push({ text: cachePayload.message });
       contents.push({ role: 'user', parts: currentParts });
 
-      const requestBody = { contents };
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:streamGenerateContent?key=${apiKey}&alt=sse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!response.ok) {
-         const err = await response.json().catch(() => ({}));
-         throw new Error(err.error?.message || 'Failed to fetch from Gemini API. Network issue or invalid key.');
+            const ai = new GoogleGenAI({ apiKey });
+      let responseStream;
+      try {
+        responseStream = await ai.models.generateContentStream({
+          model: 'gemini-3.5-flash',
+          contents,
+        });
+      } catch (err) {
+        console.error('Gemini API Error (Initialization/Request):', err);
+        throw err;
       }
-      if (!response.body) throw new Error('No body in response');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
       
       let botResponse = '';
       const botMessageId = (Date.now() + 1).toString();
-      
       const initialMsg = { id: botMessageId, role: 'model' as const, text: '' };
       setMessages(prev => [...prev, initialMsg]);
       
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-            try {
-              const data = JSON.parse(line.substring(6));
-              if (data.text) {
-                botResponse += data.text;
-                setMessages(prev => prev.map(msg => 
-                  msg.id === botMessageId ? { ...msg, text: botResponse } : msg
-                ));
-              }
-            } catch (e) {
-              console.error("Error parsing JSON chunk", e, line);
-            }
+      try {
+        for await (const chunk of responseStream) {
+          if (chunk.text) {
+            botResponse += chunk.text;
+            setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, text: botResponse } : m));
           }
         }
+      } catch (err) {
+        console.error('Gemini API Error (Stream):', err);
+        throw err;
       }
       
       localStorage.setItem(cacheKey, botResponse);

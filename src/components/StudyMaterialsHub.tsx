@@ -1,3 +1,4 @@
+import { GoogleGenAI } from '@google/genai';
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { BookOpen, FileText, Download, PlayCircle, Layers, Link as LinkIcon, Search, Brain, Target, CheckCircle, X, PackageOpen, DownloadCloud } from 'lucide-react';
@@ -107,42 +108,30 @@ IMPORTANT RULES:
 - For Notes, provide comprehensive subject matter breakdown.
 - IMPORTANT: Use standard LaTeX formatting for ALL mathematical expressions, equations, and variables. Use single dollar signs ($math$) for inline equations and double dollar signs ($math$) for block equations. Use proper LaTeX syntax for fractions (\\frac{}{}), integrals (\\int), roots (\\sqrt{}), etc.`;
 
-      const requestBody = {
-        contents: [{ role: "user", parts: [{ text: `Generate comprehensive ${item.type} on ${item.label} for ${activeBundle?.examName}.` }] }],
-        systemInstruction: { parts: [{ text: systemInstruction }] }
-      };
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:streamGenerateContent?key=${apiKey}&alt=sse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!response.ok) {
-         const err = await response.json().catch(() => ({}));
-         throw new Error(err.error?.message || 'Failed to fetch from Gemini API. Network issue or invalid key.');
+            const ai = new GoogleGenAI({ apiKey });
+      let responseStream;
+      try {
+        responseStream = await ai.models.generateContentStream({
+          model: 'gemini-3.5-flash',
+          contents: [{ role: "user", parts: [{ text: `Generate comprehensive ${item.type} on ${item.label} for ${activeBundle?.examName}.` }] }],
+          config: { systemInstruction }
+        });
+      } catch (err) {
+        console.error('Gemini API Error (Initialization/Request):', err);
+        throw err;
       }
-      if (!response.body) throw new Error('No body in response');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      
       let content = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-            try {
-              const data = JSON.parse(line.substring(6));
-              const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (textChunk) {
-                content += textChunk;
-                setGeneratedContent(content);
-              }
-            } catch (e) {}
+      try {
+        for await (const chunk of responseStream) {
+          if (chunk.text) {
+            content += chunk.text;
+            setGeneratedContent(content);
           }
         }
+      } catch (err) {
+        console.error('Gemini API Error (Stream):', err);
+        throw err;
       }
     } catch (error: any) {
       console.error(error);

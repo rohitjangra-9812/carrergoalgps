@@ -443,7 +443,7 @@ IMPORTANT: When applicable and necessary to explain complex flows, processes, or
 Be structured, encouraging, and highly specific.`;
 
       const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-3.5-flash",
         contents: contents,
         config: {
           systemInstruction: systemInstruction,
@@ -502,7 +502,7 @@ IMPORTANT RULES:
 - IMPORTANT: Use standard LaTeX formatting for ALL mathematical expressions, equations, and variables. Use single dollar signs ($math$) for inline equations and double dollar signs ($$math$$) for block equations. Use proper LaTeX syntax for fractions (\\frac{}{}), integrals (\\int), roots (\\sqrt{}), etc.`;
 
       const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-3.5-flash",
         contents: [{ role: "user", parts: [{ text: `Generate comprehensive ${type} on ${topic} for ${target}.` }] }],
         config: { 
           systemInstruction: systemInstruction,
@@ -563,7 +563,7 @@ IMPORTANT: Use standard LaTeX formatting for ALL mathematical expressions, equat
       currentParts.push({ text: question || "Please analyze this file/image." });
 
       const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-3.5-flash",
         contents: [{ role: "user", parts: currentParts }],
         config: { systemInstruction: systemInstruction }
       });
@@ -628,7 +628,7 @@ Each object in the array MUST have this exact schema:
 Return ONLY the raw JSON array. Make sure the options array has exactly 4 distinct strings, and correctAnswer exactly matches one of the options.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-3.5-flash",
         contents: [{ role: "user", parts: [{ text: `Generate daily quiz for ${today}` }] }],
         config: { systemInstruction: systemInstruction, responseMimeType: "application/json" }
       });
@@ -698,7 +698,7 @@ cron.schedule('0 0 * * *', async () => {
       const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
       const quizSystemInstruction = `Generate a JSON array of exactly 10 multiple-choice questions for a daily quiz. The questions must cover a balanced mix of disciplines (Quant, Current Affairs, GK, Science, Language). Each object MUST have: { id: number, category: string, question: string, options: [4 strings], correctAnswer: string, explanation: string }`;
       const quizResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-3.5-flash",
         contents: [{ role: "user", parts: [{ text: `Generate daily quiz for ${today}` }] }],
         config: { systemInstruction: quizSystemInstruction, responseMimeType: "application/json" }
       });
