@@ -149,7 +149,7 @@ IMPORTANT: Use standard LaTeX formatting for ALL mathematical expressions, equat
       }
     } catch (error) {
       console.error('Error fetching AI response:', error);
-      setMessages(prev => [...prev, { id: Date.now() + 1, text: "Sorry, I encountered an error connecting to the server.", isAi: true }]);
+      setMessages(prev => [...prev, { id: Date.now() + 1, text: "Error: " + (error.message || "Failed to connect to AI.") + " (Please check VITE_GEMINI_API_KEY)", isAi: true }]);
     } finally {
       setIsLoading(false);
     }

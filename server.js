@@ -171,17 +171,22 @@ async function startServer() {
       res.write(`data: ${JSON.stringify({ type: 'broadcast', broadcast })}\n\n`);
     };
 
+    const contentListener = (contentData) => {
+      res.write(`data: ${JSON.stringify({ type: 'content', content: contentData })}\n\n`);
+    };
     const featuresListener = (features) => {
       res.write(`data: ${JSON.stringify({ type: 'features', features })}\n\n`);
     };
 
     adminEvents.on('metrics', metricsListener);
     adminEvents.on('broadcast', broadcastListener);
+    adminEvents.on('content', contentListener);
     adminEvents.on('features', featuresListener);
 
     req.on('close', () => {
       adminEvents.off('metrics', metricsListener);
       adminEvents.off('broadcast', broadcastListener);
+      adminEvents.off('content', contentListener);
       adminEvents.off('features', featuresListener);
     });
   });
@@ -192,6 +197,21 @@ async function startServer() {
     globalState.broadcasts.unshift(broadcast);
     adminEvents.emit('broadcast', broadcast);
     res.json({ success: true, broadcast });
+  });
+
+    app.post("/api/admin/content", express.json(), verifyAdmin, (req, res) => {
+    const { mod, title, status } = req.body;
+    const newContent = { id: Date.now(), mod, title, status };
+    globalState.content.unshift(newContent);
+    adminEvents.emit('content', globalState.content);
+    
+    if (status === 'Published') {
+      const broadcast = { id: Date.now() + 1, type: 'New ' + mod, content: `${title} is now available!`, timestamp: new Date().toISOString() };
+      globalState.broadcasts.unshift(broadcast);
+      adminEvents.emit('broadcast', broadcast);
+    }
+    
+    res.json({ success: true, content: globalState.content });
   });
 
   app.post("/api/admin/features", express.json(), verifyAdmin, (req, res) => {

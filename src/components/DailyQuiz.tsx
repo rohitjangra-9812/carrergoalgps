@@ -1,3 +1,4 @@
+import { GoogleGenAI } from '@google/genai';
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Trophy, CheckCircle2, XCircle, ArrowRight, RotateCcw, Loader2 } from 'lucide-react';

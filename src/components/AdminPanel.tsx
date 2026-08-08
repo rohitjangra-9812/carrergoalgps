@@ -17,13 +17,15 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
   const [contentList, setContentList] = useState<any[]>([]);
   const [broadcastType, setBroadcastType] = useState('Exam Deadline Alert');
   const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [showAddContent, setShowAddContent] = useState(false);
+  const [newContentData, setNewContentData] = useState({ mod: 'Current Affairs', title: '', status: 'Published' });
 
   // Setup SSE when authenticated
   useEffect(() => {
     if (!isAuthenticated || !token) return;
 
     const eventSource = new EventSource('/api/admin/events');
-    eventSource.onerror = () => eventSource.close();
+    eventSource.onerror = (err) => { console.error('SSE Error:', err); };
     
     eventSource.onmessage = (event) => {
       try {
@@ -35,6 +37,8 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
           setBroadcasts(data.broadcasts || []);
         } else if (data.type === 'metrics') {
           setMetrics(prev => ({ ...prev, ...data.metrics }));
+        } else if (data.type === 'content') {
+          setContentList(data.content);
         } else if (data.type === 'broadcast') {
           setBroadcasts(prev => [data.broadcast, ...prev]);
         } else if (data.type === 'features') {
@@ -59,6 +63,22 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
         body: JSON.stringify({ messageType: broadcastType, messageContent: broadcastMsg })
       });
       setBroadcastMsg('');
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  
+  const handleAddContent = async () => {
+    if(!newContentData.title.trim()) return;
+    try {
+      await fetch('/api/admin/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(newContentData)
+      });
+      setShowAddContent(false);
+      setNewContentData({ mod: 'Current Affairs', title: '', status: 'Published' });
     } catch(err) {
       console.error(err);
     }
@@ -292,15 +312,62 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
             </div>
           )}
 
-          {activeTab === 'content' && (
+                    {activeTab === 'content' && (
             <div className="max-w-5xl mx-auto flex flex-col gap-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-white">Content Management</h2>
-                <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                <button onClick={() => setShowAddContent(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors">
                   + Add New Entry
                 </button>
               </div>
-              
+
+              {showAddContent && (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-4">
+                  <h3 className="text-lg font-bold text-white mb-4">Add New Content</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-slate-400 text-sm mb-2">Module</label>
+                      <select 
+                        value={newContentData.mod} 
+                        onChange={(e) => setNewContentData({...newContentData, mod: e.target.value})}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                      >
+                        <option>Current Affairs</option>
+                        <option>Study Material</option>
+                        <option>Mock Test</option>
+                        <option>PYQ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 text-sm mb-2">Title</label>
+                      <input 
+                        type="text" 
+                        value={newContentData.title}
+                        onChange={(e) => setNewContentData({...newContentData, title: e.target.value})}
+                        placeholder="e.g. UPSC Prelims 2026 Analysis"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 text-sm mb-2">Status</label>
+                      <select 
+                        value={newContentData.status}
+                        onChange={(e) => setNewContentData({...newContentData, status: e.target.value})}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                      >
+                        <option>Published</option>
+                        <option>Draft</option>
+                        <option>Archived</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <button onClick={() => setShowAddContent(false)} className="px-4 py-2 text-slate-400 hover:text-white transition-colors">Cancel</button>
+                    <button onClick={handleAddContent} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">Save & Broadcast</button>
+                  </div>
+                </div>
+              )}
+                            
               <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -312,10 +379,7 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {(contentList.length > 0 ? contentList : [
-                      { mod: 'Current Affairs', title: 'Union Budget 2026 Analysis', status: 'Published' },
-                      { mod: 'Study Material', title: 'UPSC Prelims 2025 PYQ', status: 'Published' }
-                    ]).map((item: any, i: number) => (
+                    {contentList.map((item: any, i: number) => (
                       <tr key={i} className="hover:bg-slate-800/50">
                         <td className="py-3 px-4 text-sm font-medium text-slate-300">{item.mod}</td>
                         <td className="py-3 px-4 text-sm text-white">{item.title}</td>
@@ -334,101 +398,17 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
                         </td>
                       </tr>
                     ))}
+                    {contentList.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-slate-500">No content items found.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {activeTab === 'security' && (
-            <div className="max-w-5xl mx-auto flex flex-col gap-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Cyber Security Logs</h2>
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-                  <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded text-xs font-bold">All Logs</span>
-                    <span className="px-3 py-1 bg-red-900/20 border border-red-900/50 text-red-400 rounded text-xs font-bold">Threats Only</span>
-                  </div>
-                  <button className="text-slate-400 hover:text-white text-sm font-medium flex items-center gap-2">
-                    <DownloadIcon /> Export CSV
-                  </button>
-                </div>
-                <div className="p-4 flex flex-col gap-2 font-mono text-sm">
-                  <div className="p-3 bg-red-950/20 border border-red-900/30 rounded text-slate-300 flex items-start gap-3">
-                    <ShieldAlert className="text-red-500 shrink-0 mt-0.5" size={16} />
-                    <div>
-                      <div className="text-red-400 font-bold">[CRITICAL] SQL Injection Attempt Detected</div>
-                      <div className="text-slate-500 text-xs mt-1">IP: 192.168.4.12 • Endpoint: /api/search • Payload: ' OR 1=1--</div>
-                      <div className="text-slate-600 text-xs mt-1">Action taken: IP Blocked (Rate Limiter)</div>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-slate-950 border border-slate-800 rounded text-slate-300 flex items-start gap-3">
-                    <Lock className="text-amber-500 shrink-0 mt-0.5" size={16} />
-                    <div>
-                      <div className="text-amber-400 font-bold">[WARN] Multiple Failed Admin Logins</div>
-                      <div className="text-slate-500 text-xs mt-1">IP: 10.0.0.55 • User: root</div>
-                      <div className="text-slate-600 text-xs mt-1">Action taken: Temporarily Throttled</div>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-slate-950 border border-slate-800 rounded text-slate-300 flex items-start gap-3">
-                    <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={16} />
-                    <div>
-                      <div className="text-emerald-400 font-bold">[INFO] Admin Login Successful</div>
-                      <div className="text-slate-500 text-xs mt-1">IP: 172.16.0.4 • User: admin_core</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "broadcast" && (
-            <div className="max-w-5xl mx-auto flex flex-col gap-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Broadcast & Notification Center</h2>
-              
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-slate-800">
-                  <h3 className="font-bold text-white mb-4 flex items-center gap-2"><BellRing size={18} className="text-blue-400" /> Send Portal Announcement</h3>
-                  <div className="flex flex-col gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Message Type</label>
-                      <select value={broadcastType} onChange={e => setBroadcastType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500">
-                        <option>Exam Deadline Alert</option>
-                        <option>System Maintenance</option>
-                        <option>New Study Material Added</option>
-                        <option>General Announcement</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Message Content</label>
-                      <textarea value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} rows={4} className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 placeholder:text-slate-600" placeholder="Type your announcement here..."></textarea>
-                    </div>
-                    <button onClick={handleBroadcast} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
-                      <Send size={18} /> Broadcast to All Users
-                    </button>
-                  </div>
-                </div>
-                <div className="p-6 bg-slate-950/50">
-                  <h3 className="font-bold text-slate-300 mb-4">Recent Broadcasts</h3>
-                  
-                  <div className="flex flex-col gap-3">
-                    {broadcasts.map((bcast: any, idx: number) => (
-                      <div key={idx} className="p-4 bg-slate-900 border border-slate-800 rounded-lg flex items-start justify-between">
-                        <div>
-                          <div className="text-blue-400 text-xs font-bold mb-1">{bcast.type}</div>
-                          <div className="text-white text-sm">{bcast.content}</div>
-                        </div>
-                        <span className="text-slate-500 text-xs">Just now</span>
-                      </div>
-                    ))}
-                    {broadcasts.length === 0 && <div className="text-slate-500 text-sm">No broadcasts yet.</div>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          
           {activeTab === 'users' && (
             <div className="max-w-5xl mx-auto flex flex-col gap-6">
               <h2 className="text-2xl font-bold text-white mb-4">User Management</h2>

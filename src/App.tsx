@@ -94,7 +94,7 @@ export default function App() {
 
   useEffect(() => {
     const eventSource = new EventSource('/api/admin/events');
-    eventSource.onerror = () => eventSource.close();
+    eventSource.onerror = (err) => { console.error('SSE Error:', err); };
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
