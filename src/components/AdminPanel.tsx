@@ -25,7 +25,7 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
     if (!isAuthenticated || !token) return;
 
     const eventSource = new EventSource('/api/admin/events');
-    eventSource.onerror = (err) => { console.error('SSE Error:', err); };
+    eventSource.onerror = () => { /* Auto-reconnecting... */ };
     
     eventSource.onmessage = (event) => {
       try {

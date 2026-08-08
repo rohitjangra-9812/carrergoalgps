@@ -159,9 +159,14 @@ async function startServer() {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
     
     // Send initial state
     res.write(`data: ${JSON.stringify({ type: 'init', features: globalState.features, users: globalState.users, content: globalState.content, broadcasts: globalState.broadcasts })}\n\n`);
+    const pingInterval = setInterval(() => {
+      res.write(': ping\n\n');
+    }, 15000);
 
     const metricsListener = (metrics) => {
       res.write(`data: ${JSON.stringify({ type: 'metrics', metrics })}\n\n`);
@@ -184,6 +189,7 @@ async function startServer() {
     adminEvents.on('features', featuresListener);
 
     req.on('close', () => {
+      clearInterval(pingInterval);
       adminEvents.off('metrics', metricsListener);
       adminEvents.off('broadcast', broadcastListener);
       adminEvents.off('content', contentListener);
