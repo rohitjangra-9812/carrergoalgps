@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { Send, Map, Loader2, Sparkles, Navigation, GraduationCap, Briefcase, Paperclip, Printer, Moon, Sun, FileText, X, UserCircle, Edit3, Calendar, Download, Trash2, BellRing, LogOut, Mic, MicOff, Volume2, Award } from 'lucide-react';
+import { Send, Map, Loader2, Sparkles, Navigation, GraduationCap, Briefcase, Paperclip, Printer, Moon, Sun, FileText, X, UserCircle, Edit3, Calendar, Download, Trash2, BellRing, LogOut, Mic, MicOff, Volume2, Award, Share2, Check } from 'lucide-react';
 import { SalaryPredictor } from './components/SalaryPredictor';
 import { ResumeRebrander } from './components/ResumeRebrander';
 import { RoadmapVisualizer } from './components/RoadmapVisualizer';
@@ -109,6 +109,16 @@ export default function App() {
   }, []);
 
   const [appMode, setAppMode] = useState<'GPS' | 'Growth' | 'CurrentAffairs' | 'ExamDirectory' | 'StudyMaterials' | 'DoubtSolver' | 'DailyQuiz' | 'EligibilityChecker' | 'ResumeRebrander'>('GPS');
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleShare = () => {
+    const shareUrl = `${window.location.origin}?shared=true&mode=${appMode}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+      setToastMessage(t("Shareable link copied to clipboard!"));
+    });
+  };
   
   
   // Profile state
@@ -678,6 +688,13 @@ Please build a highly personalized roadmap and possibilities for me!`);
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          <button 
+            onClick={handleShare}
+            className="flex w-full items-center justify-center gap-2 mt-4 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 rounded-lg text-sm font-semibold transition-colors border border-indigo-500/30"
+          >
+            {isCopied ? <Check size={16} /> : <Share2 size={16} />}
+            <span>{isCopied ? t('Link Copied!') : t('Share Roadmap')}</span>
+          </button>
         </nav>
         <div className="p-6 bg-slate-950 mt-auto shrink-0 relative group">
           <div className="flex items-center gap-3">
